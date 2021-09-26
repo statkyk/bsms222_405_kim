@@ -7,6 +7,10 @@ output:
   pdf_document: default
 ---
 
+```{r}
+library(pander)
+```
+
 # Chapter 5 Importing data
 
 We have been using data sets already stored as R objects. A data scientist will rarely have such luck and will have to import data into R from either a file, a database, or other sources. Currently, one of the most common ways of storing and sharing data for analysis is through electronic spreadsheets. A spreadsheet stores data in rows and columns. It is basically a file version of a data frame. When saving such a table to a computer file, one needs a way to define when a new row or column ends and the other begins. This in turn defines the cells in which single values are stored.
