@@ -1,0 +1,133 @@
+---
+title: "Are age, gender, and tobacco exposure confounding variables in the correlation analysis of lung cancer?"
+output:
+  pdf_document:
+    latex_engine: xelatex
+  word_document: default
+  html_document:
+    df_print: paged
+editor_options:
+  chunk_output_type: console
+---
+
+# 1. Introduction
+
+It is known that lung cancer has been mainly attributed to tobacco exposure. However, in East Asia, it's incidence is predominent among women, especially to those who are non-smoking.
+
+Does it mean that the occurrence of lung cancer in East Asia affected by both gender, and tobacco exposure? Or is it just the result of the fact that male tend to smoke more than female?
+
+Confounding variable is the variable that can affect to both the explanatory variable and the response variable. In this case, lung cancer is the response variable and the others are the explanatory variables. The goal of this analysis is whether the explanatory variables in this anlaysis confounding or not.
+
+To analyze it in more details, I added age to the explanatory variable because age can affect to disease occurence and tobacco exposure. So age, gender, and tobacco exposure are the variables in the analysis.
+
+Now, let's download the data to use.
+
+```{r}
+library(readxl)
+dat <- read_excel("1-s2.0-S0092867420307431-mmc1.xlsx", sheet = 2)
+dat <- as.data.frame(dat)
+```
+
+Let's take a look at the data.
+
+```{r}
+head(dat)
+```
+
+Let's remove the unconsidered columns.
+
+```{r}
+library(tidyverse)
+dat %>% select("Gender", "Age", "Smoking Status") %>% head()
+```
+
+Let's learn about more details of the columns.
+
+```{r}
+dat1 <- dat %>% select("Gender", "Age", "Smoking Status")
+dat1 %>% count(Gender)
+dat1 %>% summarize(min_median_max = quantile(Age, c(0,0.5,1)))
+dat1 %>% count(`Smoking Status`)
+```
+
+I will combine the current_smoker and ex-smoker to exposed and nonsmoke to not exposed.
+
+```{r}
+dat2 <- dat1 %>%
+  mutate(`Tobacco Exposure` = 
+           ifelse(`Smoking Status` == "Nonsmoke", "not exposed", "exposed"))
+head(dat2)
+```
+
+# 2. Comparing Two Explanatory Variables
+
+## 2-1. Age & Gender
+
+Let's look at the distribution of the age by gender.
+
+```{r}
+dat2 %>%
+  group_by(Gender) %>%
+  summarize(min_median_max = quantile(Age, c(0,0.5,1)))
+```
+
+It's hard to know the detailed distribution of the age by gender by above 
+summary statistics. Let's visualize the data.
+
+```{r}
+dat2 %>%
+  ggplot(aes(Gender, Age)) +
+  geom_violin(aes(fill = Gender), alpha = 0.15) +
+  geom_boxplot(fill = "White", alpha = 0.8) +
+  geom_jitter(aes(col = Gender), width = 0.15) +
+  ggtitle("Distribution of Age by Gender")
+```
+
+We can easily see that the age of male tend to be higher than that of female. There are outliers which affect the minimum value of the age of male.
+
+## 2-2. Age vs Tobacco Exposure
+
+Let's look at the distribution of the age by tobacco exposure.
+
+```{r}
+dat2 %>%
+  group_by(`Tobacco Exposure`) %>%
+  summarize(min_median_max = quantile(Age, c(0,0.5,1)))
+```
+
+We can see much easier than age vs gender that those who are exposed to tobacco tend to be older than who are not.
+
+## 2-3. Gender vs Tobacco Exposure
+
+Let's look at the distribution of the tobacco exposure by gender.
+
+```{r}
+dat2 %>%
+  group_by(Gender) %>%
+  count(`Tobacco Exposure`)
+```
+
+We can find out that all of the females are not exposed to the tobacco, and about 42% of the males are exposed to tobacco and 58% are not.
+
+# 3. Conclusion
+
+As we can look at the above results, we can say that
+
+1. age of the male are older than female
+2. age of smokers are older than non-smokers
+3. females are much less exposed to tobacco than males
+
+Let's try to visualize all three variables.
+
+```{r}
+dat2 %>%
+  ggplot(aes(Gender, Age)) +
+  geom_violin(fill = "yellow", alpha = 0.15) +
+  geom_boxplot(alpha = 0.8) +
+  geom_jitter(aes(col = `Tobacco Exposure`, shape = `Tobacco Exposure`), width = 0.15) +
+  ggtitle("Distribution of Age by Gender with Tobacco Exposure")
+```
+
+Lung cancer in East Asia is known to occur more frequently to female and non-smokers. And the probability of lung cancer gets higher if we live longer just like other diseases. However, we could find out from the result of the analysis that the age of male are higher than that of female, and higher for smokers than that of non-smokers. By this data, we can say that lung cancer in East Asia occurs more to females than males even if they are younger. Also, we can say that lung cancer in East Asia occurs more to non-smokers than smokers even if they are younger. However, females are much likely to be not exposed to tobacco, so we can not easily conclude that gender and tobacco exposure are completely separated variables.
+
+To conclude, we can say that age is not confounding variable to gender and tobacco exposure for the analysis of lung cancer in East Asia. In the other hand, we can say that gender and tobacco exposure are confounding variables to each other.
