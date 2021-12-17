@@ -1,0 +1,211 @@
+---
+title: "[Final] Portpolio"
+output:
+  pdf_document:
+    latex_engine: xelatex
+  word_document: default
+  html_document:
+    df_print: paged
+editor_options:
+  chunk_output_type: console
+---
+# Are age, gender, and tobacco exposure confounding variables in the correlation analysis of lung cancer?
+
+Yongku Kim, 2016150405, Department of Statistics, Korea University
+
+BSMS222 Biostatistics
+
+2021.12.17
+
+## 1. Introduction
+
+It is known that lung cancer has been mainly attributed to tobacco exposure. However, in East Asia, it's incidence is predominant among women, especially to those who are non-smoking.
+
+Does it mean that the occurrence of lung cancer in East Asia affected by both gender, and tobacco exposure? Or is it just the result of the fact that male tend to smoke more than female?
+
+Confounding variable is the variable that can affect to both the explanatory variable and the response variable. In this case, lung cancer is the response variable and the others are the explanatory variables. The goal of this analysis is whether the explanatory variables in this analysis confounding or not.
+
+To analyze it in more details, I added age to the explanatory variable because age can affect to disease occurrence and tobacco exposure. So age, gender, and tobacco exposure are the variables in the analysis.
+
+Now, let's download the data to use.
+
+```{r}
+library(readxl)
+dat <- read_excel("1-s2.0-S0092867420307431-mmc1.xlsx", sheet = 2)
+dat <- as.data.frame(dat)
+```
+
+Let's take a look at the data.
+
+```{r}
+head(dat)
+```
+
+The data shows us the information of the lung cancer patients. The information in consideration are age, gender, and tobacco exposure. Let's remove the unconsidered columns.
+
+```{r}
+library(tidyverse)
+dat %>% select("Gender", "Age", "Smoking Status") %>% head()
+```
+
+Now, we have the data which shows us the information about the age, gender, tobacco exposure of the lung cancer patients.
+
+Let's briefly look at the details of the columns.
+
+```{r}
+dat <- dat %>% select("Gender", "Age", "Smoking Status")
+dat %>% count(Gender)
+dat %>% summarize(min_median_max = quantile(Age, c(0,0.5,1)))
+dat %>% count(`Smoking Status`)
+```
+
+Because we need the information about the tobacco exposure, both ex-smokers and current smokers can be considered as those who are tobacco exposed. I will combine the two categories 'Current_smoker' and 'Ex-smoker' to 'Exposed' and 'Nonsmoke' to 'Not_Exposed'.
+
+```{r}
+dat <- dat %>%
+  mutate("Tobacco Exposure" = 
+           ifelse(`Smoking Status` == "Nonsmoke", "Not_Exposed", "Exposed")) %>%
+  select("Gender","Age","Tobacco Exposure")
+head(dat)
+```
+
+## 2. Comparing Two Explanatory Variables
+
+### 2-1. Age & Gender
+
+Let's look at the distribution of the age by tobacco exposure.
+
+```{r}
+dat %>%
+  group_by(`Tobacco Exposure`) %>%
+  summarize(min_median_max = quantile(Age, c(0,0.5,1)))
+```
+
+It's hard to know the detailed distribution of the age by gender by above summary statistics.
+
+Let's visualize the data.
+
+```{r}
+dat %>%
+  ggplot(aes(Gender, Age)) +
+  geom_violin(aes(fill = Gender), alpha = 0.15) +
+  geom_boxplot(fill = "White", alpha = 0.8) +
+  geom_jitter(aes(col = Gender), width = 0.15) +
+  ggtitle("Distribution of Age by Gender")
+```
+
+We can easily see that the age of male tend to be higher than that of female. There are two outliers which affect the minimum value of the age of male.
+
+Now, let's analyze it in statistical methods. T-test will show us whether the mean of age in male and female statistically different or not. Because gender variable has two groups, F-test for the variance of two groups will be held first.
+
+```{r}
+var.test(dat$Age ~ dat$Gender)
+```
+
+F-test result show us that we can not reject the null hypothesis, which indicates that the two groups male and female have the same variance.
+
+Now, let's progress to t-test for two samples.
+
+```{r}
+t.test(dat$Age ~ dat$Gender)
+```
+
+T-test result shows us that we can not reject the null hypothesis, which indicates that there is no significance to conclude the true difference in means between male and female. In other words, means of male and female are the same at 95% significance level.
+
+The result is quite different by only looking at the plot and analyzing it statistically. This means that the difference shown in the plot may be coincidence or not significant.
+
+### 2-2. Age vs Tobacco Exposure
+
+Let's look at the distribution of the age by tobacco exposure.
+
+```{r}
+dat %>%
+  group_by(`Tobacco Exposure`) %>%
+  summarize(min_median_max = quantile(Age, c(0,0.5,1)))
+```
+
+It seems that the age tends to be higher for 'Exposed', but it is hard to know the detailed distribution of the age by tobacco exposure by above summary statistics.
+
+Let's visualize the data.
+
+```{r}
+dat %>%
+  ggplot(aes(`Tobacco Exposure`, Age)) +
+  geom_violin(aes(fill = `Tobacco Exposure`), alpha = 0.15) +
+  geom_boxplot(fill = "White", alpha = 0.8) +
+  geom_jitter(aes(col = `Tobacco Exposure`), width = 0.15) +
+  ggtitle("Distribution of Age by Tobacco Exposure")
+```
+
+It seems quite clear that age of 'Exposed' is higher than 'Not_Exposed'.
+
+Let's analyze it statistically for detailed analysis.
+
+```{r}
+var.test(dat$Age ~ dat$`Tobacco Exposure`)
+```
+
+F-test result show us that we can not reject the null hypothesis, which indicates that the two groups 'Exposed' and 'Not_Exposed' have the same variance.
+
+Now, let's progress to t-test for two samples.
+
+```{r}
+t.test(dat$Age ~ dat$`Tobacco Exposure`)
+```
+
+T-test result shows us that we can reject null hypothesis, which indicates that the means between two groups are significantly different at 95% significance level.
+
+We can conclude that those who are exposed to tobacco tend to have higher age.
+
+### 2-3. Gender vs Tobacco Exposure
+
+Let's look at the distribution of the tobacco exposure by gender.
+
+```{r}
+dat %>%
+  group_by(Gender) %>%
+  count(`Tobacco Exposure`)
+```
+
+We can find out that all of the females are not exposed to the tobacco, and about 42% of the males are exposed to tobacco and 58% are not.
+
+Let's analyze it statistically.
+
+```{r}
+x <- c(60,25)
+n <- c(60,43)
+prop.test(n=n, x=x, alternative = "greater")
+```
+
+Proportion test result shows us that we can reject the null hypothesis, which indicates that the proportion of female non-smokers is higher than male at 95% significance level.
+
+We can conclude that male is more likely to smoke than female.
+
+## 3. Conclusion
+
+As we can look at the above results, we can say that
+
+in the data analyzed,
+
+1. age of the male and female are same
+2. age of smokers are older than non-smokers
+3. females are much less exposed to tobacco than males
+
+Let's try to visualize all three variables.
+
+```{r}
+dat %>%
+  ggplot(aes(Gender, Age)) +
+  geom_violin(fill = "yellow", alpha = 0.15) +
+  geom_boxplot(alpha = 0.8) +
+  geom_jitter(aes(col = `Tobacco Exposure`), width = 0.15) +
+  ggtitle("Distribution of Age by Gender with Tobacco Exposure")
+```
+
+Lung cancer in East Asia is known to occur more frequently to female and non-smokers. And the probability of lung cancer gets higher if we live longer just like other diseases.
+
+The result shows us that age and gender have no significant correlation and as a result they are not confounding variables to each other.
+
+Also, higher age may get the disease easier than lower age, but non-smokers are likely to have lower age but tend to have lung cancer more frequently. We can say that lung cancer in East Asia occurs more to non-smokers than smokers even if they are younger. As a result, they are confounding variables to each other, but the result of the interaction is not different from the previous result and it is a significant point of the analysis.
+
+However, we could find out that female are more likely to smoke less than male, so two variables can not be easily treated apart. We can not conclude that gender and tobacco exposure both affect probability of lung cancer at the same strength. As a result, gender and tobacco exposure are confounding variables to each other and it has to be considered carefully to say that both variables have significant meaning for lung cancer.
